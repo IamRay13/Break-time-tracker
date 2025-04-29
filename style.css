@@ -1,0 +1,89 @@
+/* Base reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background: linear-gradient(135deg, #fbc2eb, #a6c1ee);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Container styling */
+.container {
+  background: #fff;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  width: 90%;
+  max-width: 500px;
+  text-align: center;
+  animation: fadeIn 1s ease-out;
+}
+
+/* Fade-in animation for smooth appearance */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+h1 {
+  font-size: 2em;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Time information display */
+.time-section p {
+  font-size: 1.2em;
+  margin: 10px 0;
+}
+
+/* Button container styling */
+.btn-group {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+/* Modern button design */
+button {
+  flex: 1;
+  padding: 12px;
+  font-size: 1.1em;
+  border: none;
+  border-radius: 8px;
+  background: #007bff;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+  background: #0056b3;
+  transform: scale(1.02);
+}
+
+/* Optional: Dark mode */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: linear-gradient(135deg, #1e1e1e, #2a2a2a);
+  }
+  .container {
+    background: #2a2a2a;
+    color: #f5f5f5;
+    box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
+  }
+  button {
+    background: #4a90e2;
+  }
+  button:hover {
+    background: #357ab8;
+  }
+}
