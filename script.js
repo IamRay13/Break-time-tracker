@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Start Break: Compute return time (30min later), start countdown and schedule alarm
+  // Start Break: Compute return time (30min later), start countdown and schedule the alarm
   startButton.addEventListener("click", () => {
     clearExistingTimers();
     const now = new Date();
@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
     scheduleAlarm(returnTime);
   });
 
-  // Reset Break: Clear timers, stored data, and UI displays
+  // Reset Break: Clear timers, stored data, and UI displays.
   resetButton.addEventListener("click", () => {
     clearExistingTimers();
     localStorage.removeItem("returnTime");
@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
     countdownDisplay.textContent = "";
   });
 
-  // Clears interval and timeout if they exist.
+  // Clears both the interval and timeout if active.
   function clearExistingTimers() {
     if (breakTimerInterval) {
       clearInterval(breakTimerInterval);
@@ -63,13 +63,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Start a countdown timer that updates every second.
+  // Starts a countdown timer that updates every second.
   function startCountdown(returnTime) {
     // Clear any previous countdown
     if (breakTimerInterval) {
       clearInterval(breakTimerInterval);
     }
-
     breakTimerInterval = setInterval(() => {
       const now = new Date();
       const diff = returnTime - now;
@@ -88,10 +87,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 1000);
   }
 
-  // Schedules an alarm for 2 minutes before the break ends.
+  // Schedules the alarm for 2 minutes before the break ends.
   function scheduleAlarm(returnTime) {
     const now = new Date();
-    // Alarm time: 2 minutes before break end
+    // Alarm time: 2 minutes before break end.
     const alarmTime = new Date(returnTime.getTime() - 2 * 60000);
     const timeUntilAlarm = alarmTime - now;
 
@@ -100,27 +99,46 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Trigger the alarm: plays sound, vibrates, and shows a notification or alert.
+  // Attempts to redirect or bring the app to the foreground.
+  function bringAppToFront() {
+    // Try to focus the window if it's hidden.
+    if (document.hidden) {
+      window.focus();
+      // Attempt to reopen the current URL in the same tab.
+      window.open(location.href, "_self");
+    }
+  }
+
+  // Trigger the alarm: plays sound, vibrates, shows a notification or alert, and brings the app to front.
   function triggerAlarm() {
     // Vibrate (if supported)
     if ("vibrate" in navigator) {
       navigator.vibrate([200, 100, 200]);
     }
 
-    // Play an alarm sound using an MP3 file.
-    const alarmAudio = new Audio('alarm.mp3');
+    // Play an alarm sound from an MP3 file.
+    const alarmAudio = new Audio("alarm.mp3");
     alarmAudio.play().catch(error => {
       console.error("Error playing sound:", error);
     });
 
+    // Bring the app to the front automatically.
+    bringAppToFront();
+
     // If Notifications are supported and permission was granted, show one.
     if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("Break Ending Soon", {
+      let notification = new Notification("Break Ending Soon", {
         body: "Your break will end in 2 minutes!",
-        icon: "icon.png" // Optionally include an icon file
+        icon: "icon.png" // Optionally include an icon file.
       });
+
+      // Additionally, focus the window if the notification is clicked.
+      notification.onclick = function (event) {
+        window.focus();
+        notification.close();
+      };
     } else {
-      // Fallback to an alert popup.
+      // Fallback: use an alert popup.
       alert("Reminder: Your break will end in 2 minutes!");
     }
   }
