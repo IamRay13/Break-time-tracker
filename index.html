@@ -1,28 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BreakTime Reminder</title>
-  <!-- Google Fonts for a modern look -->
-  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Break and Lunch Tracker</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
-    <h1>BreakTime Reminder</h1>
-    <div class="time-section">
-      <p><strong>Current Time:</strong> <span id="current-time">--:--:--</span></p>
-      <p><strong>Break Start:</strong> <span id="break-start-time">--:--:--</span></p>
-      <p><strong>Return Time:</strong> <span id="return-time">--:--:--</span></p>
-      <p><strong>Notification:</strong> <span id="notification">No active reminder</span></p>
+    <h1>Break and Lunch Tracker</h1>
+    <div class="display">
+      <p id="statusMessage">Press "Start Break" to begin your 30-minute break.</p>
+      <p id="returnTimeDisplay"></p>
+      <p id="countdownDisplay"></p>
     </div>
-    <div class="btn-group">
-      <button id="start-break-btn">Start Break</button>
-      <button id="reset-btn">Reset</button>
+    <div class="buttons">
+      <button id="startButton">Start Break</button>
+      <button id="resetButton">Reset</button>
     </div>
   </div>
-  
+
   <script src="script.js"></script>
 </body>
 </html>
