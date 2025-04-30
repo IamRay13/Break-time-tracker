@@ -1,101 +1,127 @@
-// Global variable to manage the notification timeout
-let notificationTimeoutId = null;
+document.addEventListener("DOMContentLoaded", () => {
+  // DOM Elements
+  const startButton = document.getElementById("startButton");
+  const resetButton = document.getElementById("resetButton");
+  const statusMessage = document.getElementById("statusMessage");
+  const returnTimeDisplay = document.getElementById("returnTimeDisplay");
+  const countdownDisplay = document.getElementById("countdownDisplay");
 
-// Update the current time every second
-function updateCurrentTime() {
-  const now = new Date();
-  document.getElementById('current-time').textContent = now.toLocaleTimeString();
-}
+  let breakTimerInterval;
+  let alarmTimeout;
 
-updateCurrentTime();
-setInterval(updateCurrentTime, 1000);
-
-// Event listeners for the buttons
-document.getElementById('start-break-btn').addEventListener('click', startBreak);
-document.getElementById('reset-btn').addEventListener('click', resetBreak);
-
-// Function to start the break
-function startBreak() {
-  const breakStart = new Date();
-  document.getElementById('break-start-time').textContent = breakStart.toLocaleTimeString();
-
-  // Define break duration (30 minutes) and compute return time
-  const breakDurationMinutes = 30;
-  const returnTime = new Date(breakStart.getTime() + breakDurationMinutes * 60000);
-  document.getElementById('return-time').textContent = returnTime.toLocaleTimeString();
-
-  // Save break data in localStorage for persistence
-  const breakData = {
-    breakStart: breakStart.getTime(),
-    returnTime: returnTime.getTime()
-  };
-  localStorage.setItem("breakData", JSON.stringify(breakData));
-
-  // Schedule a notification alarm (2 minutes before return time)
-  const notificationTime = new Date(returnTime.getTime() - 2 * 60000);
-  const now = new Date();
-  const delay = notificationTime.getTime() - now.getTime();
-
-  if (delay > 0) {
-    document.getElementById('notification').textContent = "Reminder set for " + notificationTime.toLocaleTimeString();
-    notificationTimeoutId = setTimeout(triggerNotification, delay);
-  } else {
-    triggerNotification();
+  // Request Notification permissions, if available
+  if ("Notification" in window && Notification.permission !== "granted") {
+    Notification.requestPermission();
   }
-}
 
-// Function to trigger the 2-minute notification reminder
-function triggerNotification() {
-  document.getElementById('notification').textContent = "Break ends in 2 minutes!";
-  // For demonstration: a simple alert
-  alert("Your break ends in 2 minutes!");
-}
-
-// Function to check and load break data upon page refresh
-function loadBreakData() {
-  const storedData = localStorage.getItem("breakData");
-  if (storedData) {
-    const data = JSON.parse(storedData);
-    const breakStart = new Date(data.breakStart);
-    const returnTime = new Date(data.returnTime);
+  // Check localStorage for an ongoing break session
+  const storedReturnTime = localStorage.getItem("returnTime");
+  if (storedReturnTime) {
+    const returnTime = new Date(storedReturnTime);
     const now = new Date();
-
-    // If the break has already ended, clear the saved data
-    if (returnTime <= now) {
-      clearLocalBreakData();
+    if (returnTime > now) {
+      statusMessage.textContent = "Your break is in progress.";
+      returnTimeDisplay.textContent = "Return Time: " + returnTime.toLocaleTimeString();
+      startCountdown(returnTime);
+      scheduleAlarm(returnTime);
     } else {
-      document.getElementById('break-start-time').textContent = breakStart.toLocaleTimeString();
-      document.getElementById('return-time').textContent = returnTime.toLocaleTimeString();
-
-      const notificationTime = new Date(returnTime.getTime() - 2 * 60000);
-      if (notificationTime > now) {
-        document.getElementById('notification').textContent = "Reminder set for " + notificationTime.toLocaleTimeString();
-        const delay = notificationTime.getTime() - now.getTime();
-        notificationTimeoutId = setTimeout(triggerNotification, delay);
-      } else {
-        triggerNotification();
-      }
+      localStorage.removeItem("returnTime");
     }
   }
-}
 
-// Utility function to clear break data from localStorage and reset UI labels
-function clearLocalBreakData() {
-  localStorage.removeItem("breakData");
-  if (notificationTimeoutId) {
-    clearTimeout(notificationTimeoutId);
-    notificationTimeoutId = null;
+  // Start Break: Compute return time (30min later), start countdown and schedule alarm
+  startButton.addEventListener("click", () => {
+    clearExistingTimers();
+    const now = new Date();
+    // Calculate return time: 30 minutes later
+    const returnTime = new Date(now.getTime() + 30 * 60000);
+    localStorage.setItem("returnTime", returnTime);
+    statusMessage.textContent = "Break started! Enjoy your 30-minute break.";
+    returnTimeDisplay.textContent = "Return Time: " + returnTime.toLocaleTimeString();
+    startCountdown(returnTime);
+    scheduleAlarm(returnTime);
+  });
+
+  // Reset Break: Clear timers, stored data, and UI displays
+  resetButton.addEventListener("click", () => {
+    clearExistingTimers();
+    localStorage.removeItem("returnTime");
+    statusMessage.textContent = "Break reset. Press 'Start Break' to begin your break.";
+    returnTimeDisplay.textContent = "";
+    countdownDisplay.textContent = "";
+  });
+
+  // Clears interval and timeout if they exist.
+  function clearExistingTimers() {
+    if (breakTimerInterval) {
+      clearInterval(breakTimerInterval);
+      breakTimerInterval = null;
+    }
+    if (alarmTimeout) {
+      clearTimeout(alarmTimeout);
+      alarmTimeout = null;
+    }
   }
-  document.getElementById('break-start-time').textContent = "--:--:--";
-  document.getElementById('return-time').textContent = "--:--:--";
-  document.getElementById('notification').textContent = "No active reminder";
-}
 
-// Handler for the Reset button: clears localStorage and resets the UI
-function resetBreak() {
-  clearLocalBreakData();
-  alert("Break data has been reset.");
-}
+  // Start a countdown timer that updates every second.
+  function startCountdown(returnTime) {
+    // Clear any previous countdown
+    if (breakTimerInterval) {
+      clearInterval(breakTimerInterval);
+    }
 
-// On page load, try to restore any previously saved break data
-loadBreakData();
+    breakTimerInterval = setInterval(() => {
+      const now = new Date();
+      const diff = returnTime - now;
+
+      if (diff <= 0) {
+        clearInterval(breakTimerInterval);
+        countdownDisplay.textContent = "Break over!";
+        statusMessage.textContent = "Your break has ended.";
+        localStorage.removeItem("returnTime");
+      } else {
+        // Compute remaining minutes and seconds
+        const minutes = Math.floor(diff / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        countdownDisplay.textContent = `Time remaining: ${minutes}m ${seconds}s`;
+      }
+    }, 1000);
+  }
+
+  // Schedules an alarm for 2 minutes before the break ends.
+  function scheduleAlarm(returnTime) {
+    const now = new Date();
+    // Alarm time: 2 minutes before break end
+    const alarmTime = new Date(returnTime.getTime() - 2 * 60000);
+    const timeUntilAlarm = alarmTime - now;
+
+    if (timeUntilAlarm > 0) {
+      alarmTimeout = setTimeout(triggerAlarm, timeUntilAlarm);
+    }
+  }
+
+  // Trigger the alarm: plays sound, vibrates, and shows a notification or alert.
+  function triggerAlarm() {
+    // Vibrate (if supported)
+    if ("vibrate" in navigator) {
+      navigator.vibrate([200, 100, 200]);
+    }
+
+    // Play an alarm sound using an MP3 file.
+    const alarmAudio = new Audio('alarm.mp3');
+    alarmAudio.play().catch(error => {
+      console.error("Error playing sound:", error);
+    });
+
+    // If Notifications are supported and permission was granted, show one.
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Break Ending Soon", {
+        body: "Your break will end in 2 minutes!",
+        icon: "icon.png" // Optionally include an icon file
+      });
+    } else {
+      // Fallback to an alert popup.
+      alert("Reminder: Your break will end in 2 minutes!");
+    }
+  }
+});
