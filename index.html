@@ -1,25 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Break and Lunch Tracker</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <div class="container">
-    <h1>Break and Lunch Tracker</h1>
-    <div class="display">
-      <p id="statusMessage">Press "Start Break" to begin your 30-minute break.</p>
-      <p id="returnTimeDisplay"></p>
-      <p id="countdownDisplay"></p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Break & Lunch Tracker</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Break & Lunch Tracker</h1>
+      </header>
+      <div class="timer-display">
+        <p id="status">Ready to start your break!</p>
+        <!-- New element for displaying the pressed start time -->
+        <p id="startTime"></p>
+        <p id="returnTime"></p>
+        <p id="countdown"></p>
+      </div>
+      <div class="controls">
+        <button id="startButton">Start Break</button>
+        <button id="resetButton">Reset</button>
+      </div>
     </div>
-    <div class="buttons">
-      <button id="startButton">Start Break</button>
-      <button id="resetButton">Reset</button>
-    </div>
-  </div>
 
-  <script src="script.js"></script>
-</body>
+    <script src="script.js"></script>
+  </body>
 </html>
