@@ -36,6 +36,15 @@ function formatTime(ts) {
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`;
 }
 
+// Helper function: Format a timestamp into MM/DD/YYYY format.
+function formatDate(ts) {
+  const date = new Date(ts);
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${month}/${day}/${year}`;
+}
+
 // Helper function: format duration (in milliseconds) into a human-readable string.
 function formatDuration(ms) {
   const totalSeconds = Math.floor(ms / 1000);
@@ -67,10 +76,17 @@ function formatDuration(ms) {
 function updateLogTable() {
   const tableBody = document.getElementById('logTableBody');
   tableBody.innerHTML = '';
-  logs.forEach(log => {
+
+  // Sort logs so that the most recent (highest outTimestamp) appear on top.
+  let sortedLogs = logs.slice().sort((a, b) => b.outTimestamp - a.outTimestamp);
+
+  sortedLogs.forEach(log => {
     const tr = document.createElement('tr');
 
-    // Create table cells for type, out time, in time, and duration
+    // Create table cells for date, type, out time, in time, and duration
+    const dateTd = document.createElement('td');
+    dateTd.textContent = log.date;
+    
     const typeTd = document.createElement('td');
     typeTd.textContent = log.type;
     
@@ -88,6 +104,7 @@ function updateLogTable() {
       durationTd.textContent = '';
     }
     
+    tr.appendChild(dateTd);
     tr.appendChild(typeTd);
     tr.appendChild(outTd);
     tr.appendChild(inTd);
@@ -175,9 +192,12 @@ document.getElementById('breakOutBtn').addEventListener('click', function() {
   }
   const startTime = Date.now();
   currentSession = { type: "Break", startTime: startTime };
-  // Add session log with raw timestamps for later duration calculation
+  // Compute date in MM/DD/YYYY format
+  const dateStr = formatDate(startTime);
+  // Add session log with raw timestamps and a date, for later duration calculation
   logs.push({
     type: "Break",
+    date: dateStr,
     outTime: formatTime(startTime),
     outTimestamp: startTime,
     inTime: null,
@@ -224,8 +244,10 @@ document.getElementById('lunchOutBtn').addEventListener('click', function() {
   }
   const startTime = Date.now();
   currentSession = { type: "Lunch", startTime: startTime };
+  const dateStr = formatDate(startTime);
   logs.push({
     type: "Lunch",
+    date: dateStr,
     outTime: formatTime(startTime),
     outTimestamp: startTime,
     inTime: null,
