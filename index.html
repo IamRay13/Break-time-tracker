@@ -1,32 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Break & Lunch Tracker</title>
-    <!-- Link the manifest for the PWA -->
-    <link rel="manifest" href="service-worker.js" />
-    <link rel="manifest" href="manifest.json" />
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <div class="container">
-      <header>
-        <h1>Break & Lunch Tracker</h1>
-      </header>
-      <div class="timer-display">
-        <p id="status">Ready to start your break!</p>
-        <!-- Display exact time when the break is started -->
-        <p id="startTime"></p>
-        <p id="returnTime"></p>
-        <p id="countdown"></p>
-      </div>
-      <div class="controls">
-        <button id="startButton">Start Break</button>
-        <button id="resetButton">Reset</button>
-      </div>
+<head>
+  <meta charset="UTF-8">
+  <title>Time Tracker Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Time Tracker Dashboard</h1>
+
+    <div id="controls">
+      <button id="breakOutBtn">Break Out</button>
+      <button id="breakInBtn">Break In</button>
+      <button id="lunchOutBtn">Lunch Out</button>
+      <button id="lunchInBtn">Lunch In</button>
+      <button id="okBtn">OK</button>
+      <button id="resetBtn">Reset</button>
     </div>
 
-    <script src="script.js"></script>
-  </body>
+    <div id="timer">
+      <h2>Time Remaining:</h2>
+      <p id="timeRemaining">--:--</p>
+    </div>
+
+    <div id="log">
+      <h2>Session Log</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Out Time</th>
+            <th>In Time</th>
+            <th>Duration (min)</th>
+          </tr>
+        </thead>
+        <tbody id="logTableBody">
+          <!-- Session logs will be inserted here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
 </html>

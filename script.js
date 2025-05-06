@@ -1,149 +1,285 @@
-document.addEventListener('DOMContentLoaded', () => {
-  // DOM Elements
-  const startButton = document.getElementById('startButton');
-  const resetButton = document.getElementById('resetButton');
-  const statusEl = document.getElementById('status');
-  const startTimeEl = document.getElementById('startTime');
-  const returnTimeEl = document.getElementById('returnTime');
-  const countdownEl = document.getElementById('countdown');
+// Global variables and constants
+let currentSession = null; // { type: "Break" or "Lunch", startTime: <timestamp> }
+let countdownInterval = null;
+let beepInterval = null;
 
-  let timerInterval;
-  let alarmTimeout;
-  let breakEndTime;
+const BREAK_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
+const ALERT_BEFORE = 2 * 60 * 1000;      // Alert threshold: 2 minutes in milliseconds
+let logs = []; // Array to store session logs
 
-  // Create audio object for alarm sound (make sure "alarm.mp3" exists in your directory)
-  const alarmSound = new Audio('alarm.mp3');
+// Save the current logs and session to localStorage
+function saveDataToLocalStorage() {
+  const data = {
+    logs: logs,
+    currentSession: currentSession
+  };
+  localStorage.setItem('timeTrackerData', JSON.stringify(data));
+}
 
-  // Request notification permission if it hasn't been granted
-  if ("Notification" in window && Notification.permission !== "granted") {
-    Notification.requestPermission();
+// Load data from localStorage
+function loadDataFromLocalStorage() {
+  const data = localStorage.getItem('timeTrackerData');
+  if (data) {
+    const parsed = JSON.parse(data);
+    logs = parsed.logs || [];
+    currentSession = parsed.currentSession || null;
   }
+}
 
-  // Start Break: Initializes the 30-minute break and sets a timestamp
-  function startBreak() {
-    const now = new Date();
-    // Set break to end in 30 minutes
-    breakEndTime = new Date(now.getTime() + 30 * 60000);
-    localStorage.setItem('breakEndTime', breakEndTime);
-    localStorage.setItem('breakStarted', now.toISOString());
-    
-    // Update the UI with the start time and calculated return time
-    startTimeEl.innerText = `Started at: ${now.toLocaleTimeString()}`;
-    returnTimeEl.innerText = `Return at: ${breakEndTime.toLocaleTimeString()}`;
-    statusEl.innerText = "Break in progress...";
+// Format a timestamp into the 12-hour clock format (e.g., "02:05 PM")
+function formatTime(ts) {
+  const date = new Date(ts);
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12; // Convert hour "0" to "12"
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+}
 
-    // Clear any existing timers
-    clearInterval(timerInterval);
-    clearTimeout(alarmTimeout);
-
-    // Start the live countdown (updates every second)
-    timerInterval = setInterval(updateCountdown, 1000);
-
-    // Schedule the alarm to trigger 2 minutes before break ends
-    const alarmTriggerTime = breakEndTime.getTime() - 2 * 60000;
-    const timeUntilAlarm = alarmTriggerTime - now.getTime();
-    if (timeUntilAlarm > 0) {
-      alarmTimeout = setTimeout(triggerAlarm, timeUntilAlarm);
+// Helper function: format duration (in milliseconds) into a human-readable string.
+function formatDuration(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  
+  if (totalSeconds < 60) {
+    return `${totalSeconds} sec`;
+  } else if (totalSeconds < 3600) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return seconds > 0 
+           ? `${minutes} min ${seconds} sec` 
+           : `${minutes} min`;
+  } else {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    let result = `${hours} hr`;
+    if (minutes > 0) {
+      result += ` ${minutes} min`;
     }
+    if (seconds > 0) {
+      result += ` ${seconds} sec`;
+    }
+    return result;
   }
+}
 
-  // Update the countdown display every second
-  function updateCountdown() {
-    const now = new Date().getTime();
-    const distance = breakEndTime.getTime() - now;
+// Update the session log table in the DOM
+function updateLogTable() {
+  const tableBody = document.getElementById('logTableBody');
+  tableBody.innerHTML = '';
+  logs.forEach(log => {
+    const tr = document.createElement('tr');
+
+    // Create table cells for type, out time, in time, and duration
+    const typeTd = document.createElement('td');
+    typeTd.textContent = log.type;
     
-    if (distance <= 0) {
-      clearInterval(timerInterval);
-      countdownEl.innerText = "Break Over";
-      statusEl.innerText = "Your break has ended!";
-      localStorage.removeItem('breakEndTime');
-      localStorage.removeItem('breakStarted');
-      return;
-    }
+    const outTd = document.createElement('td');
+    outTd.textContent = log.outTime;
     
-    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-    countdownEl.innerText = `Time left: ${minutes}m ${seconds}s`;
-  }
-
-  // Trigger the alarm 2 minutes before the break ends
-  function triggerAlarm() {
-    // Play alarm sound (ensure audio playback is allowed)
-    alarmSound.play().catch((err) => {
-      console.error("Playback prevented:", err);
-    });
-
-    // Trigger vibration pattern (if supported)
-    if (navigator.vibrate) {
-      navigator.vibrate([200, 100, 200]);
-    }
-
-    // Create a system notification (or fallback with alert)
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("Break Alert", {
-        body: "Your break is about to end in 2 minutes!",
-        icon: "icon.png" // Optional: ensure icon.png is in your project folder
-      });
+    const inTd = document.createElement('td');
+    inTd.textContent = log.inTime || '';
+    
+    const durationTd = document.createElement('td');
+    if (log.inTimestamp && log.outTimestamp) {
+      const diff = log.inTimestamp - log.outTimestamp;
+      durationTd.textContent = formatDuration(diff);
     } else {
-      alert("Your break is about to end in 2 minutes!");
+      durationTd.textContent = '';
     }
     
-    // Attempt to bring the window/tab back into focus
-    window.focus();
-  }
-
-  // Reset the break timer and UI
-  function resetBreak() {
-    clearInterval(timerInterval);
-    clearTimeout(alarmTimeout);
-    countdownEl.innerText = "";
-    returnTimeEl.innerText = "";
-    startTimeEl.innerText = "";
-    statusEl.innerText = "Break reset. Ready to start your break!";
-    localStorage.removeItem('breakEndTime');
-    localStorage.removeItem('breakStarted');
-  }
-
-  // Event listeners for the Start and Reset buttons
-  startButton.addEventListener('click', startBreak);
-  resetButton.addEventListener('click', resetBreak);
-
-  // Resume an existing break session if present in localStorage
-  const storedBreakEnd = localStorage.getItem('breakEndTime');
-  if (storedBreakEnd) {
-    breakEndTime = new Date(storedBreakEnd);
-    // If the break session has expired, reset the app
-    if (breakEndTime < new Date()) {
-      resetBreak();
-    } else {
-      returnTimeEl.innerText = `Return at: ${breakEndTime.toLocaleTimeString()}`;
-      statusEl.innerText = "Resuming break...";
-      const storedBreakStart = localStorage.getItem('breakStarted');
-      if (storedBreakStart) {
-        startTimeEl.innerText = `Started at: ${new Date(storedBreakStart).toLocaleTimeString()}`;
-      }
-      updateCountdown();
-      timerInterval = setInterval(updateCountdown, 1000);
-      const now = new Date();
-      const alarmTriggerTime = breakEndTime.getTime() - 2 * 60000;
-      const timeUntilAlarm = alarmTriggerTime - now.getTime();
-      if (timeUntilAlarm > 0) {
-        alarmTimeout = setTimeout(triggerAlarm, timeUntilAlarm);
-      }
-    }
-  }
-});
-
-// Service Worker registration for PWA functionality
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/service-worker.js")
-      .then((registration) => {
-        console.log("Service Worker registered with scope:", registration.scope);
-      })
-      .catch((error) => {
-        console.error("Service Worker registration failed:", error);
-      });
+    tr.appendChild(typeTd);
+    tr.appendChild(outTd);
+    tr.appendChild(inTd);
+    tr.appendChild(durationTd);
+    tableBody.appendChild(tr);
   });
 }
+
+// Update the countdown timer display
+function updateCountdown() {
+  const timerDisplay = document.getElementById('timeRemaining');
+
+  if (!currentSession) {
+    timerDisplay.textContent = '--:--';
+    return;
+  }
+
+  const now = Date.now();
+  const elapsed = now - currentSession.startTime;
+  let remaining = BREAK_DURATION - elapsed;
+  if (remaining < 0) {
+    remaining = 0;
+  }
+  
+  // Format remaining time as mm:ss
+  const minutes = Math.floor(remaining / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+  timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+  // When remaining time is less than or equal to 2 minutes, start the beep if not already alerting
+  if (remaining <= ALERT_BEFORE && !beepInterval) {
+    startBeepAlert();
+  }
+}
+
+// Use the Web Audio API to produce a short beep sound
+function beep() {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const oscillator = ctx.createOscillator();
+  oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(1000, ctx.currentTime); // 1,000 Hz beep tone
+  oscillator.connect(ctx.destination);
+  oscillator.start();
+  oscillator.stop(ctx.currentTime + 0.2); // Beep duration: 0.2 seconds
+}
+
+// Start the periodic beep alert (every 2 seconds) once the 2-minute threshold is reached
+function startBeepAlert() {
+  if (beepInterval) return;
+  beep(); // Initial beep
+  beepInterval = setInterval(beep, 2000);
+}
+
+// Stop the beep alert; called when user clicks OK or when session ends
+function stopBeepAlert() {
+  if (beepInterval) {
+    clearInterval(beepInterval);
+    beepInterval = null;
+  }
+}
+
+// Reset the entire dashboard; clear logs and active session data
+function resetDashboard() {
+  if (confirm("Are you sure you want to reset? This will clear all data.")) {
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+    stopBeepAlert();
+    currentSession = null;
+    logs = [];
+    localStorage.removeItem('timeTrackerData');
+    updateCountdown();
+    updateLogTable();
+  }
+}
+
+// Set up event listeners for buttons
+
+// Break Out
+document.getElementById('breakOutBtn').addEventListener('click', function() {
+  if (currentSession) {
+    alert("Another session is already active. Please end it before starting a new one.");
+    return;
+  }
+  const startTime = Date.now();
+  currentSession = { type: "Break", startTime: startTime };
+  // Add session log with raw timestamps for later duration calculation
+  logs.push({
+    type: "Break",
+    outTime: formatTime(startTime),
+    outTimestamp: startTime,
+    inTime: null,
+    inTimestamp: null
+  });
+  saveDataToLocalStorage();
+  updateLogTable();
+  updateCountdown();
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(updateCountdown, 1000);
+});
+
+// Break In
+document.getElementById('breakInBtn').addEventListener('click', function() {
+  if (!currentSession || currentSession.type !== "Break") {
+    alert("No active Break session to end.");
+    return;
+  }
+  const now = Date.now();
+  // Find the last Break session without an inTime and update it
+  for (let i = logs.length - 1; i >= 0; i--) {
+    if (logs[i].type === "Break" && !logs[i].inTime) {
+      logs[i].inTime = formatTime(now);
+      logs[i].inTimestamp = now;
+      break;
+    }
+  }
+  currentSession = null;
+  saveDataToLocalStorage();
+  updateLogTable();
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+  document.getElementById('timeRemaining').textContent = '--:--';
+  stopBeepAlert();
+});
+
+// Lunch Out
+document.getElementById('lunchOutBtn').addEventListener('click', function() {
+  if (currentSession) {
+    alert("Another session is already active. Please end it before starting a new one.");
+    return;
+  }
+  const startTime = Date.now();
+  currentSession = { type: "Lunch", startTime: startTime };
+  logs.push({
+    type: "Lunch",
+    outTime: formatTime(startTime),
+    outTimestamp: startTime,
+    inTime: null,
+    inTimestamp: null
+  });
+  saveDataToLocalStorage();
+  updateLogTable();
+  updateCountdown();
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(updateCountdown, 1000);
+});
+
+// Lunch In
+document.getElementById('lunchInBtn').addEventListener('click', function() {
+  if (!currentSession || currentSession.type !== "Lunch") {
+    alert("No active Lunch session to end.");
+    return;
+  }
+  const now = Date.now();
+  // Find the latest Lunch session without an inTime and update it
+  for (let i = logs.length - 1; i >= 0; i--) {
+    if (logs[i].type === "Lunch" && !logs[i].inTime) {
+      logs[i].inTime = formatTime(now);
+      logs[i].inTimestamp = now;
+      break;
+    }
+  }
+  currentSession = null;
+  saveDataToLocalStorage();
+  updateLogTable();
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+  document.getElementById('timeRemaining').textContent = '--:--';
+  stopBeepAlert();
+});
+
+// OK button for stopping the beep alert
+document.getElementById('okBtn').addEventListener('click', function() {
+  stopBeepAlert();
+});
+
+// Reset button
+document.getElementById('resetBtn').addEventListener('click', function() {
+  resetDashboard();
+});
+
+// On window load, restore any saved data and resume any active session countdown
+window.onload = function() {
+  loadDataFromLocalStorage();
+  updateLogTable();
+  updateCountdown();
+  if (currentSession) {
+    countdownInterval = setInterval(updateCountdown, 1000);
+  }
+};
