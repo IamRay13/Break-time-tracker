@@ -259,9 +259,13 @@
         }
 
         function logSession() {
-            sessionLogTableBody.innerHTML = '';
-            sessions.forEach(session => {
+            // Clear existing rows before re-populating to ensure correct order
+            sessionLogTableBody.innerHTML = ''; 
+            // Iterate through sessions in reverse order to display most recent first
+            for (let i = sessions.length - 1; i >= 0; i--) {
+                const session = sessions[i];
                 const row = sessionLogTableBody.insertRow();
+                
                 const dateCell = row.insertCell();
                 const typeCell = row.insertCell();
                 const outTimeCell = row.insertCell();
@@ -279,7 +283,7 @@
                 outTimeCell.textContent = formattedOutTime;
                 inTimeCell.textContent = formattedInTime;
                 durationCell.textContent = duration;
-            });
+            }
             saveSessions();
         }
 
@@ -344,6 +348,11 @@
         breakInButton.addEventListener('click', () => {
             if (activeSession && activeSession.type === 'Break' && !activeSession.endTime) {
                 activeSession.endTime = new Date().toISOString();
+                // Update the corresponding session in the 'sessions' array
+                const sessionIndex = sessions.findIndex(session => session.startTime === activeSession.startTime && session.type === activeSession.type);
+                if (sessionIndex !== -1) {
+                    sessions[sessionIndex].endTime = activeSession.endTime;
+                }
                 activeSession = null;
                 clearActiveSession();
                 clearInterval(timerInterval);
@@ -367,6 +376,11 @@
         lunchInButton.addEventListener('click', () => {
             if (activeSession && activeSession.type === 'Lunch' && !activeSession.endTime) {
                 activeSession.endTime = new Date().toISOString();
+                // Update the corresponding session in the 'sessions' array
+                const sessionIndex = sessions.findIndex(session => session.startTime === activeSession.startTime && session.type === activeSession.type);
+                if (sessionIndex !== -1) {
+                    sessions[sessionIndex].endTime = activeSession.endTime;
+                }
                 activeSession = null;
                 clearActiveSession();
                 clearInterval(timerInterval);
